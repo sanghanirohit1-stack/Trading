@@ -1,0 +1,1363 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TradeVault - Trading Journal</title>
+<style>
+:root {
+  --bg:#090d12; --panel:#121923; --panel2:#192330;
+  --text:#f3f6fa; --muted:#91a0b3; --green:#37e29a;
+  --red:#ff5f70; --line:#263342; --blue:#70a8ff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+font-family:Arial,sans-serif;padding-bottom:90px}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.topbar{position:sticky;top:0;z-index:5;background:#0b1016;
+border-bottom:1px solid var(--line);padding:15px 16px;
+display:flex;align-items:center;justify-content:space-between}
+.brand{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.brand span{color:var(--green)}
+.iconbtn{background:var(--panel2);color:white;border:1px solid var(--line);
+padding:10px 12px;border-radius:12px}
+main{max-width:800px;margin:auto;padding:16px}
+.page{display:none}.page.active{display:block}
+h2{font-size:23px;margin:10px 0 5px}
+h3{font-size:16px;margin:0 0 13px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);
+border-radius:17px;padding:16px;margin-bottom:14px;min-width:0}
+.stat-label{color:var(--muted);font-size:12px;margin-bottom:9px}
+.stat-value{font-size:22px;font-weight:800;overflow-wrap:anywhere}
+.green{color:var(--green)}.red{color:var(--red)}.muted{color:var(--muted)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+label{display:block;color:#c6d0dc;font-size:13px;margin:13px 0 7px}
+input,select,textarea{width:100%;padding:12px;background:#0b1118;
+border:1px solid #2a3949;color:white;border-radius:11px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--green)}
+input[readonly]{color:var(--green);font-weight:bold}
+.btn{border:0;border-radius:11px;padding:12px 14px;font-weight:700}
+.primary{background:var(--green);color:#07130d}
+.secondary{background:var(--panel2);color:white;border:1px solid var(--line)}
+.danger{background:#351820;color:#ff8d9a;border:1px solid #5b2934}
+.full{width:100%;margin-top:15px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btnrow .btn{flex:1}
+.trade{background:var(--panel);border:1px solid var(--line);
+border-radius:14px;padding:14px;margin-bottom:10px}
+.trade-title{font-weight:800}
+.trade-meta{font-size:12px;color:var(--muted);margin-top:7px;line-height:1.6}
+.trade-actions{display:flex;gap:7px;margin-top:10px}
+.trade-actions button{padding:7px 11px;font-size:12px}
+.pill{border-radius:20px;padding:5px 9px;font-size:11px;font-weight:700}
+.win{background:#123b2c;color:var(--green)}
+.loss{background:#421d26;color:#ff8795}
+.empty{text-align:center;padding:28px 10px;color:var(--muted)}
+.bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:10;
+display:grid;grid-template-columns:repeat(5,1fr);gap:2px;
+background:#0d131b;border-top:1px solid var(--line);
+padding:9px 5px max(9px,env(safe-area-inset-bottom))}
+.navbtn{border:0;background:transparent;color:var(--muted);
+font-size:10px;padding:5px 1px;display:flex;flex-direction:column;
+align-items:center;gap:5px}
+.navbtn .ico{font-size:19px}
+.navbtn.active{color:var(--green)}
+.navbtn.addnav .ico{background:var(--green);color:#07130d;
+width:39px;height:34px;border-radius:12px;display:grid;place-items:center;
+font-size:25px;font-weight:bold}
+.barline{height:8px;background:#263342;border-radius:8px;overflow:hidden;margin-top:8px}
+.barfill{height:100%;background:var(--green);border-radius:8px}
+.calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.dayname{text-align:center;font-size:10px;color:var(--muted);padding:6px 0}
+.day{min-height:48px;border-radius:8px;padding:5px 2px;text-align:center;
+background:var(--panel2);font-size:12px;border:1px solid transparent}
+.day .amt{font-size:9px;margin-top:3px;overflow-wrap:anywhere;line-height:1.25}\n.day .trade-count{font-size:9px;margin-top:3px;color:var(--text);opacity:.9;overflow-wrap:anywhere}
+.day.profit{background:#123c2c;border-color:#1c6647}
+.day.lossday{background:#421e28;border-color:#71303d}
+.day.today{border-color:var(--blue)}
+.month-controls{display:flex;align-items:center;justify-content:space-between;
+gap:10px;margin-bottom:15px}
+.small{font-size:12px}
+hr{border:0;border-top:1px solid var(--line);margin:15px 0}
+canvas{width:100%;height:180px;display:block}
+.note{font-size:12px;color:var(--muted);line-height:1.6}
+@media(min-width:650px){
+ main{padding:22px}.stat-value{font-size:26px}
+ .grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+  
+/* Theme options */
+body.theme-light {
+  --bg: #f3f6fa;
+  --panel: #ffffff;
+  --panel2: #e8edf4;
+  --text: #17202b;
+  --muted: #657386;
+  --green: #078b5b;
+  --red: #d9364f;
+  --line: #d4dce6;
+  --blue: #276bd1;
+}
+
+body.theme-light .topbar,
+body.theme-light .bottomnav {
+  background: #ffffff;
+}
+
+body.theme-light input,
+body.theme-light select,
+body.theme-light textarea {
+  background: #f8fafc;
+  color: #17202b;
+  border-color: #d4dce6;
+}
+
+body.theme-light .iconbtn,
+body.theme-light .secondary {
+  background: #e8edf4;
+  color: #17202b;
+}
+
+body.theme-light .primary {
+  color: #ffffff;
+}
+
+body.theme-midnight {
+  --bg: #080b20;
+  --panel: #111735;
+  --panel2: #1a2247;
+  --text: #f4f5ff;
+  --muted: #a0a9cb;
+  --green: #8bffcf;
+  --red: #ff718f;
+  --line: #2c3764;
+  --blue: #8ba8ff;
+}
+
+body.theme-midnight .topbar,
+body.theme-midnight .bottomnav {
+  background: #0b1028;
+}
+
+body.theme-midnight input,
+body.theme-midnight select,
+body.theme-midnight textarea {
+  background: #0b1028;
+  color: #f4f5ff;
+}
+
+
+/* Instagram-inspired inset layout */
+body { padding-top: 12px; padding-bottom: 112px; }
+.topbar { position: sticky; top: 8px; margin: 8px 10px 0; border: 1px solid var(--line); border-radius: 18px; backdrop-filter: blur(16px); }
+main { padding: 18px 14px; }
+.bottomnav { left: 10px; right: 10px; bottom: 10px; border: 1px solid var(--line); border-radius: 20px; }
+.heatmap-toggle { display:flex; gap:8px; margin-bottom:14px; }
+.heatmap-toggle .btn { flex:1; }
+.heatmap-toggle .btn.selected { background:var(--green); color:#07130d; border-color:var(--green); }
+.heatmap-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:14px; }
+.heatmap-cell { min-width:0; }
+/* Premium app-lock screen */
+.lock-screen { position:fixed; inset:0; z-index:10000; background:radial-gradient(ellipse at 50% 0%, rgba(55,226,154,.13), transparent 48%), var(--bg); display:flex; align-items:center; justify-content:center; padding:24px; padding-top:max(24px,env(safe-area-inset-top)); padding-bottom:max(24px,env(safe-area-inset-bottom)); }
+.lock-box { width:100%; max-width:370px; background:linear-gradient(160deg, var(--panel), color-mix(in srgb, var(--panel) 82%, #07130d)); border:1px solid var(--line); border-radius:28px; padding:28px 22px 24px; text-align:center; box-shadow:0 24px 80px rgba(0,0,0,.35); }
+.lock-emblem { width:76px;height:76px;margin:0 auto 18px;border-radius:24px;display:grid;place-items:center;font-size:34px;background:rgba(55,226,154,.12);border:1px solid rgba(55,226,154,.35);box-shadow:0 0 35px rgba(55,226,154,.08); }
+.lock-box .brand { margin-bottom:8px;font-size:28px; }
+.lock-box h2 { margin:12px 0 6px;font-size:25px; }
+.lock-box .note { margin:0 auto 16px;max-width:270px; }
+.lock-box input { text-align:center;letter-spacing:10px;font-size:22px;padding:15px;border-radius:14px; }
+.lock-security-note { display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px;color:var(--muted);font-size:11px; }
+.lock-screen .primary { width:100%;margin-top:12px;padding:14px;border-radius:14px; }
+.lock-screen .primary:disabled { opacity:.6;cursor:wait; }
+@media(max-width:480px){ body{padding-top:8px;padding-bottom:100px;} .topbar{top:6px;margin:6px 8px 0;padding:12px 14px;} main{padding:16px 12px;} .bottomnav{left:8px;right:8px;bottom:8px;} .lock-box{padding:26px 20px 22px;} }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Trade<span>Vault</span></div>
+  <button class="iconbtn" onclick="showPage('settings')" aria-label="Settings">⚙️</button>
+</header>
+
+<main>
+  <!-- HOME -->
+  <section id="home" class="page active">
+    <h2>Dashboard</h2>
+    <div class="sub" id="todayLabel">Your trading performance at a glance</div>
+    <div class="grid">
+      <div class="card"><div class="stat-label">Current Capital</div>
+        <div class="stat-value" id="currentCapital">₹0</div></div>
+      <div class="card"><div class="stat-label">Total P&L</div>
+        <div class="stat-value" id="totalPnL">₹0</div></div>
+      <div class="card"><div class="stat-label">Win Rate</div>
+        <div class="stat-value" id="winRate">0%</div></div>
+      <div class="card"><div class="stat-label">Total Trades</div>
+        <div class="stat-value" id="totalTrades">0</div></div>
+    </div>
+    <div class="card">
+      <div class="row"><h3>This Month P&amp;L</h3><span class="muted small" id="dashboardMonthLabel"></span></div>
+      <div class="stat-value" id="dashboardMonthPnL">₹0.00</div>
+      <div class="note" id="dashboardMonthTrades">0 trades this month</div>
+    </div>
+    <div class="card">
+      <div class="row"><h3>Capital Overview</h3><span class="muted small">INR</span></div>
+      <div class="row"><span class="muted small">Starting Capital</span>
+        <strong id="startCapitalText">₹0</strong></div>
+      <div class="row" style="margin-top:10px"><span class="muted small">Net Return</span>
+        <strong id="returnPercent">0%</strong></div>
+      <div class="barline"><div class="barfill" id="capitalBar" style="width:0%"></div></div>
+    </div>
+    <div class="card">
+      <div class="row"><h3>Recent Trades</h3>
+        <button class="btn secondary" onclick="showPage('history')">View All</button></div>
+      <div id="recentTrades"></div>
+    </div>
+    <button class="btn primary full" onclick="showPage('add')">＋ Add New Trade</button>
+  </section>
+
+  <!-- ADD / EDIT TRADE -->
+  <section id="add" class="page">
+    <h2 id="formTitle">Add Trade</h2>
+    <div class="sub">Record your entry, exit and result</div>
+    <div class="card">
+      <form id="tradeForm" onsubmit="saveTrade(event)">
+        <input type="hidden" id="tradeId">
+        <label for="symbol">Symbol</label>
+        <select id="symbol" required onchange="updateLotQuantity()">
+          <option value="NIFTY 50">NIFTY 50 — 65 Qty / Lot</option>
+          <option value="SENSEX">SENSEX — 20 Qty / Lot</option>
+          <option value="BANKNIFTY">BANKNIFTY — 30 Qty / Lot</option>
+        </select>
+
+        <label for="lots">Number of Lots</label>
+        <input id="lots" type="number" min="1" step="1" value="1"
+          required oninput="updateLotQuantity()">
+
+        <label for="quantity">Total Quantity (Auto)</label>
+        <input id="quantity" type="number" value="65" readonly>
+
+        <div class="grid">
+          <div><label for="tradeDate">Trade Date</label>
+            <input id="tradeDate" type="date" required></div>
+          <div><label for="direction">Direction</label>
+            <select id="direction"><option value="Long">Long / Buy</option>
+              <option value="Short">Short / Sell</option></select></div>
+        </div>
+
+        <div class="grid">
+          <div><label for="entry">Entry Price (₹)</label>
+            <input id="entry" type="number" min="0" step="any" required placeholder="0.00"></div>
+          <div><label for="exit">Exit Price (₹)</label>
+            <input id="exit" type="number" min="0" step="any" required placeholder="0.00"></div>
+        </div>
+
+        <div class="grid">
+          <div><label for="stopLoss">Stop Loss Price (₹)</label>
+            <input id="stopLoss" type="number" min="0" step="any" placeholder="Optional"></div>
+          <div><label for="targetPrice">Target Price (₹)</label>
+            <input id="targetPrice" type="number" min="0" step="any" placeholder="Optional"></div>
+        </div>
+        <div class="note" id="riskPreview">Add stop loss and target to estimate risk/reward.</div>
+        <label for="charges">Charges (₹)</label>
+        <input id="charges" type="number" min="0" step="any" value="0">
+
+        <label for="setup">Strategy / Setup</label>
+        <input id="setup" type="text" maxlength="100" placeholder="e.g. Breakout">
+
+        <label for="notes">Notes</label>
+        <textarea id="notes" rows="3" maxlength="1000" placeholder="Reason for entry, mistakes, observations..."></textarea>
+
+        <div class="card" style="margin-top:15px;margin-bottom:0;background:#0b1118">
+          <div class="stat-label">Estimated Net P&L</div>
+          <div class="stat-value" id="previewPnL">₹0</div>
+          <div class="note">P&L = price difference × quantity − charges</div>
+        </div>
+        <button class="btn primary full" type="submit" id="saveTradeBtn">Save Trade</button>
+        <button class="btn secondary full" type="button" onclick="resetTradeForm()">Clear Form</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="history" class="page">
+    <h2>Trade History</h2>
+    <div class="sub">Review, edit or delete your trades</div>
+    <div class="card">
+      <label for="historyFilter">Filter by Symbol</label>
+      <select id="historyFilter" onchange="renderHistory()">
+        <option value="All">All Symbols</option>
+        <option value="NIFTY 50">NIFTY 50</option>
+        <option value="SENSEX">SENSEX</option>
+        <option value="BANKNIFTY">BANKNIFTY</option>
+      </select>
+      <label for="sortOrder">Sort By</label>
+      <select id="sortOrder" onchange="renderHistory()">
+        <option value="new">Newest First</option>
+        <option value="old">Oldest First</option>
+        <option value="profit">Highest P&L</option>
+        <option value="loss">Lowest P&L</option>
+      </select>
+    </div>
+    <div id="historyList"></div>
+  </section>
+
+  <!-- HEATMAP -->
+  <section id="heatmap" class="page">
+    <h2>Trading Heatmap</h2>
+    <div class="sub">Daily profit and loss calendar</div>
+    <div class="card">
+      <div class="heatmap-toggle">
+        <button id="monthModeBtn" class="btn secondary selected" onclick="changeHeatmapMode('month')">Monthly</button>
+        <button id="weekModeBtn" class="btn secondary" onclick="changeHeatmapMode('week')">Weekly</button>
+      </div>
+      <div class="month-controls">
+        <button class="btn secondary" onclick="moveHeatmap(-1)" aria-label="Previous">❮</button>
+        <h3 id="monthTitle" style="text-align:center;margin:0">Monthly Heatmap</h3>
+        <button class="btn secondary" onclick="moveHeatmap(1)" aria-label="Next">❯</button>
+      </div>
+      <div id="calendar" class="calendar"></div>
+      <div class="heatmap-summary">
+        <div><div class="stat-label">Period P&amp;L</div><div class="stat-value" id="monthPnl">₹0.00</div></div>
+        <div><div class="stat-label">Total Trades</div><div class="stat-value" id="monthTrades">0</div></div>
+      </div>
+      <p class="note">Green = profit · Red = loss · Tap a date to see that day's trades.</p>
+      <div id="heatmapDayDetail"></div>
+    </div>
+  </section>
+
+  <!-- ANALYTICS -->
+  <section id="analytics" class="page">
+    <h2>Analytics</h2>
+    <div class="sub">Understand your trading performance</div>
+    <div class="card">
+      <div class="row"><h3>Monthly Report</h3><input id="reportMonth" type="month" style="max-width:160px" onchange="renderMonthlyReport()"></div>
+      <div class="grid">
+        <div><div class="stat-label">Net P&amp;L</div><div class="stat-value" id="reportPnL">₹0.00</div></div>
+        <div><div class="stat-label">Trades</div><div class="stat-value" id="reportTrades">0</div></div>
+        <div><div class="stat-label">Win Rate</div><div class="stat-value" id="reportWinRate">0%</div></div>
+        <div><div class="stat-label">Best Trade</div><div class="stat-value" id="reportBest">₹0.00</div></div>
+      </div>
+      <div class="note" id="reportSummary">Choose a month to review your results.</div>
+    </div>
+    <div class="grid">
+      <div class="card"><div class="stat-label">Winning Trades</div>
+        <div class="stat-value green" id="winsCount">0</div></div>
+      <div class="card"><div class="stat-label">Losing Trades</div>
+        <div class="stat-value red" id="lossesCount">0</div></div>
+      <div class="card"><div class="stat-label">Average P&L</div>
+        <div class="stat-value" id="avgPnL">₹0</div></div>
+      <div class="card"><div class="stat-label">Profit Factor</div>
+        <div class="stat-value" id="profitFactor">—</div></div>
+    </div>
+    <div class="card">
+      <h3>Symbol Performance</h3>
+      <div id="symbolAnalytics"></div>
+    </div>
+    <div class="card">
+      <h3>Recent P&L Trend</h3>
+      <canvas id="pnlChart" width="600" height="220"
+  style="cursor:pointer;touch-action:manipulation"></canvas>
+<div id="chartTradeDetail" class="card" style="display:none;margin-top:12px"></div>
+      <div class="note">Each bar represents a recent trade, ordered from oldest to newest.</div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings" class="page">
+    <h2>Settings</h2>
+    <div class="sub">Capital, backups and data management</div>
+    
+<div class="card">
+  <h3>Appearance & Theme</h3>
+  <label for="themeSelect">Choose App Theme</label>
+  <select id="themeSelect" onchange="changeTheme(this.value)">
+    <option value="dark">Dark Pro</option>
+    <option value="light">Light</option>
+    <option value="midnight">Midnight Blue</option>
+  </select>
+  <p class="note">Your selected theme will be saved automatically.</p>
+</div>
+
+    <div class="card">
+      <h3>App PIN Lock</h3>
+      <p class="note">Set a 4–8 digit PIN to show a lock screen when this app is opened. This is a basic privacy lock, not bank-grade encryption.</p>
+      <label for="pinInput">New PIN (4–8 digits)</label>
+      <input id="pinInput" type="password" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" placeholder="Enter new PIN">
+      <div class="btnrow"><button class="btn primary" onclick="setAppPin()">Set / Change PIN</button><button class="btn secondary" onclick="lockAppNow()">Lock Now</button><button class="btn danger" onclick="removeAppPin()">Remove PIN</button></div>
+    </div>
+    <div class="card">
+      <h3>Capital Settings</h3>
+      <label for="initialCapital">Starting / Custom Capital (₹)</label>
+      <input id="initialCapital" type="number" min="0" step="any" placeholder="Enter capital">
+      <button class="btn primary full" onclick="saveCapital()">Save Capital</button>
+      <hr>
+      <div class="row"><span class="muted small">Starting Capital</span>
+        <strong id="settingsStart">₹0</strong></div>
+      <div class="row" style="margin-top:10px"><span class="muted small">Current Capital</span>
+        <strong id="settingsCurrent">₹0</strong></div>
+    </div>
+    <div class="card">
+      <h3>Backup & Restore</h3>
+      <p class="note">Export your trades as JSON for backup. Restore a previous TradeVault JSON backup when needed.</p>
+      <div class="btnrow">
+        <button class="btn secondary" onclick="exportJSON()">Export JSON</button>
+        <button class="btn secondary" onclick="exportCSV()">Export CSV</button>
+        <button class="btn primary" onclick="exportExcel()">Download Excel (CSV)</button>
+      </div>
+      <label for="importFile">Restore JSON Backup</label>
+      <input id="importFile" type="file" accept=".json,application/json" onchange="importJSON(event)">
+    </div>
+    <div class="card">
+      <h3>Danger Zone</h3>
+      <p class="note">This permanently deletes all saved trades on this device.</p>
+      <button class="btn danger full" onclick="clearAllTrades()">Delete All Trades</button>
+    </div>
+    <div class="card">
+      <h3>Lot Size Settings</h3>
+      <div class="row"><span>NIFTY 50</span><strong>65 / Lot</strong></div><hr>
+      <div class="row"><span>SENSEX</span><strong>20 / Lot</strong></div><hr>
+      <div class="row"><span>BANKNIFTY</span><strong>30 / Lot</strong></div>
+      <p class="note">These are the fixed quantities configured in this app. Verify current exchange lot sizes before trading.</p>
+    </div>
+  </section>
+</main>
+
+<nav class="bottomnav">
+  <button class="navbtn active" data-page="home" onclick="showPage('home')">
+    <span class="ico">⌂</span>Home
+  </button>
+  <button class="navbtn" data-page="history" onclick="showPage('history')">
+    <span class="ico">▤</span>History
+  </button>
+  <button class="navbtn addnav" data-page="add" onclick="resetTradeForm();showPage('add')">
+    <span class="ico">＋</span>Add Trade
+  </button>
+  <button class="navbtn" data-page="heatmap" onclick="showPage('heatmap')">
+    <span class="ico">▦</span>Heatmap
+  </button>
+  <button class="navbtn" data-page="analytics" onclick="showPage('analytics')">
+    <span class="ico">◫</span>Analytics
+  </button>
+</nav>
+
+<div id="pinLockScreen" class="lock-screen" style="display:none" role="dialog" aria-modal="true" aria-labelledby="lockTitle">
+  <div class="lock-box">
+    <div class="lock-emblem" aria-hidden="true">🔐</div>
+    <div class="brand">Trade<span style="color:var(--green)">Vault</span></div>
+    <h2 id="lockTitle">Welcome back</h2>
+    <p class="note">Your trading space is locked. Enter your PIN to continue.</p>
+    <form onsubmit="event.preventDefault();unlockApp();">
+      <label for="unlockPin" style="text-align:left">Your 4–8 digit PIN</label>
+      <input id="unlockPin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4,8}" maxlength="8" placeholder="••••" aria-describedby="pinError" required>
+      <button id="unlockButton" class="btn primary" type="submit">Unlock TradeVault&nbsp; →</button>
+    </form>
+    <p id="pinError" class="note" role="status" style="color:var(--red);margin-top:12px"></p>
+    <div class="lock-security-note"><span aria-hidden="true">●</span> Private app screen · PIN check on this device</div>
+  </div>
+</div>
+
+<!-- PART 2 CODE STARTS HERE -->
+
+<script>
+"use strict";
+
+const STORAGE_KEY = "tradevault_instagram_v1";
+const LOT_SIZES = {
+  "NIFTY 50": 65,
+  "SENSEX": 20,
+  "BANKNIFTY": 30
+};
+
+let trades = [];
+let initialCapital = 0;
+let calendarDate = new Date();
+let editingId = null;
+
+const $ = id => document.getElementById(id);
+
+function money(value) {
+  const n = Number(value) || 0;
+  return (n < 0 ? "-₹" : "₹") +
+    Math.abs(n).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+}
+
+function safeText(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;",
+    '"':"&quot;", "'":"&#39;"
+  }[ch]));
+}
+
+function localDateString(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function validDate(s) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""));
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (Array.isArray(data.trades)) {
+      trades = data.trades.filter(t => t && typeof t === "object");
+    }
+    initialCapital = Math.max(0, Number(data.initialCapital) || 0);
+  } catch (error) {
+    alert("Saved data could not be read. Your browser storage may be damaged.");
+  }
+}
+
+function saveData() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      trades,
+      initialCapital
+    }));
+  } catch (error) {
+    alert("Unable to save data. Check your device storage or browser settings.");
+  }
+}
+
+function tradePnL(t) {
+  const entry = Number(t.entry) || 0;
+  const exit = Number(t.exit) || 0;
+  const qty = Number(t.quantity) || 0;
+  const charges = Number(t.charges) || 0;
+  const direction = t.direction === "Short" ? -1 : 1;
+  return (exit - entry) * qty * direction - charges;
+}
+
+function totalPnL() {
+  return trades.reduce((sum, t) => sum + tradePnL(t), 0);
+}
+
+function stats() {
+  const pnls = trades.map(tradePnL);
+  const wins = pnls.filter(p => p > 0).length;
+  const losses = pnls.filter(p => p < 0).length;
+  const grossProfit = pnls.filter(p => p > 0).reduce((a,b) => a+b, 0);
+  const grossLoss = Math.abs(pnls.filter(p => p < 0).reduce((a,b) => a+b, 0));
+  return {
+    wins, losses,
+    total: pnls.length,
+    net: pnls.reduce((a,b) => a+b, 0),
+    winRate: pnls.length ? wins / pnls.length * 100 : 0,
+    average: pnls.length ? pnls.reduce((a,b) => a+b, 0) / pnls.length : 0,
+    grossProfit, grossLoss,
+    factor: grossLoss ? grossProfit / grossLoss :
+      (grossProfit ? Infinity : 0)
+  };
+}
+
+function showPage(pageId) {
+  const page = $(pageId);
+  if (!page) return;
+  document.querySelectorAll(".page").forEach(el => el.classList.remove("active"));
+  page.classList.add("active");
+
+  document.querySelectorAll(".navbtn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.page === pageId);
+  });
+
+  if (pageId === "home") renderHome();
+  if (pageId === "history") renderHistory();
+  if (pageId === "heatmap") renderHeatmap();
+  if (pageId === "analytics") renderAnalytics();
+  if (pageId === "settings") renderSettings();
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function updateLotQuantity() {
+  const symbol = $("symbol").value;
+  const lots = Math.max(1, Math.floor(Number($("lots").value) || 1));
+  $("lots").value = lots;
+  $("quantity").value = (LOT_SIZES[symbol] || 65) * lots;
+  previewTradePnL();
+}
+
+function previewTradePnL() {
+  const entry = Number($("entry").value) || 0;
+  const exit = Number($("exit").value) || 0;
+  const qty = Number($("quantity").value) || 0;
+  const charges = Number($("charges").value) || 0;
+  const direction = $("direction").value === "Short" ? -1 : 1;
+  const pnl = (exit - entry) * qty * direction - charges;
+  $("previewPnL").textContent = money(pnl);
+  $("previewPnL").className = "stat-value " + (pnl >= 0 ? "green" : "red");
+}
+
+function resetTradeForm() {
+  editingId = null;
+  $("tradeForm").reset();
+  $("tradeId").value = "";
+  $("symbol").value = "NIFTY 50";
+  $("lots").value = "1";
+  $("quantity").value = "65";
+  $("tradeDate").value = localDateString();
+  $("charges").value = "0";
+  $("stopLoss").value = "";
+  $("targetPrice").value = "";
+  $("formTitle").textContent = "Add Trade";
+  $("saveTradeBtn").textContent = "Save Trade";
+  previewTradePnL();
+}
+
+function saveTrade(event) {
+  event.preventDefault();
+
+  const symbol = $("symbol").value;
+  const lots = Math.floor(Number($("lots").value));
+  const entry = Number($("entry").value);
+  const exit = Number($("exit").value);
+  const charges = Number($("charges").value || 0);
+  const date = $("tradeDate").value;
+
+  if (!LOT_SIZES[symbol]) {
+    alert("Please select a valid symbol.");
+    return;
+  }
+  if (!Number.isInteger(lots) || lots < 1) {
+    alert("Lots must be at least 1.");
+    return;
+  }
+  if (!Number.isFinite(entry) || !Number.isFinite(exit) ||
+      entry < 0 || exit < 0 || !Number.isFinite(charges) || charges < 0) {
+    alert("Enter valid prices and charges.");
+    return;
+  }
+  if (!validDate(date)) {
+    alert("Please select a valid trade date.");
+    return;
+  }
+
+  const quantity = LOT_SIZES[symbol] * lots;
+  const old = editingId ? trades.find(t => String(t.id) === String(editingId)) : null;
+
+  const trade = {
+    id: old ? old.id : String(Date.now()) + Math.random().toString(36).slice(2, 8),
+    symbol,
+    lots,
+    quantity,
+    date,
+    direction: $("direction").value === "Short" ? "Short" : "Long",
+    entry,
+    exit,
+    charges,
+    stopLoss: Number($("stopLoss").value) || 0,
+    targetPrice: Number($("targetPrice").value) || 0,
+    setup: $("setup").value.trim(),
+    notes: $("notes").value.trim(),
+    createdAt: old ? old.createdAt : Date.now(),
+    updatedAt: Date.now()
+  };
+
+  if (old) {
+    trades = trades.map(t => String(t.id) === String(editingId) ? trade : t);
+  } else {
+    trades.push(trade);
+  }
+
+  saveData();
+  resetTradeForm();
+  refreshAll();
+  showPage("home");
+  alert(old ? "Trade updated successfully!" : "Trade saved successfully!");
+}
+
+function editTrade(id) {
+  const t = trades.find(item => String(item.id) === String(id));
+  if (!t) return;
+
+  editingId = t.id;
+  $("tradeId").value = t.id;
+  $("symbol").value = LOT_SIZES[t.symbol] ? t.symbol : "NIFTY 50";
+  $("lots").value = Math.max(1, Math.floor(Number(t.lots) ||
+    (Number(t.quantity) / LOT_SIZES[$("symbol").value]) || 1));
+  $("quantity").value = LOT_SIZES[$("symbol").value] * Number($("lots").value);
+  $("tradeDate").value = validDate(t.date) ? t.date : localDateString();
+  $("direction").value = t.direction === "Short" ? "Short" : "Long";
+  $("entry").value = Number(t.entry) || 0;
+  $("exit").value = Number(t.exit) || 0;
+  $("charges").value = Number(t.charges) || 0;
+  $("stopLoss").value = Number(t.stopLoss) || "";
+  $("targetPrice").value = Number(t.targetPrice) || "";
+  updateRiskPreview();
+  $("setup").value = t.setup || "";
+  $("notes").value = t.notes || "";
+  $("formTitle").textContent = "Edit Trade";
+  $("saveTradeBtn").textContent = "Update Trade";
+  previewTradePnL();
+  showPage("add");
+}
+
+function deleteTrade(id) {
+  if (!confirm("Delete this trade permanently?")) return;
+  trades = trades.filter(t => String(t.id) !== String(id));
+  saveData();
+  refreshAll();
+}
+
+function tradeItemHTML(t) {
+  const pnl = tradePnL(t);
+  return `
+    <div class="trade">
+      <div class="row">
+        <div>
+          <div class="trade-title">${safeText(t.symbol)}</div>
+          <div class="trade-meta">${safeText(t.date)} · ${safeText(t.direction)} · ${Number(t.lots)||1} lot(s) · ${Number(t.quantity)||0} Qty</div>
+        </div>
+        <div style="text-align:right">
+          <div class="${pnl >= 0 ? "green" : "red"}" style="font-weight:800">${money(pnl)}</div>
+          <span class="pill ${pnl >= 0 ? "win" : "loss"}">${pnl > 0 ? "PROFIT" : pnl < 0 ? "LOSS" : "BREAKEVEN"}</span>
+        </div>
+      </div>
+      <div class="trade-meta">
+        Entry: ${money(t.entry)} · Exit: ${money(t.exit)} · Charges: ${money(t.charges)}
+        ${Number(t.stopLoss) > 0 ? "<br>Stop Loss: " + money(t.stopLoss) : ""}
+        ${Number(t.targetPrice) > 0 ? "<br>Target: " + money(t.targetPrice) : ""}
+        ${t.setup ? "<br>Setup: " + safeText(t.setup) : ""}
+        ${t.notes ? "<br>Notes: " + safeText(t.notes) : ""}
+      </div>
+      <div class="trade-actions">
+        <button class="btn secondary" onclick="editTrade('${safeText(t.id)}')">Edit</button>
+        <button class="btn danger" onclick="deleteTrade('${safeText(t.id)}')">Delete</button>
+      </div>
+    </div>`;
+}
+
+function renderHome() {
+  const s = stats();
+  const current = initialCapital + s.net;
+
+  $("todayLabel").textContent = new Date().toLocaleDateString("en-IN", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric"
+  });
+  $("currentCapital").textContent = money(current);
+  $("currentCapital").className = "stat-value " + (current >= 0 ? "green" : "red");
+  $("totalPnL").textContent = money(s.net);
+  $("totalPnL").className = "stat-value " + (s.net >= 0 ? "green" : "red");
+  $("winRate").textContent = s.winRate.toFixed(1) + "%";
+  $("totalTrades").textContent = s.total;
+  $("startCapitalText").textContent = money(initialCapital);
+  const now = new Date();
+  const monthKey = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0");
+  const monthTrades = trades.filter(t => String(t.date || "").startsWith(monthKey));
+  const monthNet = monthTrades.reduce((sum,t) => sum + tradePnL(t), 0);
+  $("dashboardMonthLabel").textContent = now.toLocaleDateString("en-IN", {month:"short",year:"numeric"});
+  $("dashboardMonthPnL").textContent = money(monthNet);
+  $("dashboardMonthPnL").className = "stat-value " + (monthNet >= 0 ? "green" : "red");
+  $("dashboardMonthTrades").textContent = monthTrades.length + " trade(s) this month";
+
+  const ret = initialCapital > 0 ? s.net / initialCapital * 100 : 0;
+  $("returnPercent").textContent = ret.toFixed(2) + "%";
+  $("returnPercent").className = ret >= 0 ? "green" : "red";
+  $("capitalBar").style.width = Math.min(100, Math.max(0, Math.abs(ret))) + "%";
+
+  
+const today = localDateString();
+
+const recent = trades
+  .filter(t => t.date === today)
+  .sort((a, b) =>
+    (Number(b.createdAt) || 0) -
+    (Number(a.createdAt) || 0)
+  );
+
+  
+  $("recentTrades").innerHTML = recent.length
+    ? recent.map(tradeItemHTML).join("")
+    : '<div class="empty">No trades yet.<br>Add your first trade to get started.</div>';
+}
+
+function renderHistory() {
+  const filter = $("historyFilter").value;
+  const sort = $("sortOrder").value;
+  let list = trades.filter(t => filter === "All" || t.symbol === filter);
+
+  if (sort === "new") list.sort((a,b) => String(b.date).localeCompare(String(a.date)) || (Number(b.createdAt)||0)-(Number(a.createdAt)||0));
+  if (sort === "old") list.sort((a,b) => String(a.date).localeCompare(String(b.date)) || (Number(a.createdAt)||0)-(Number(b.createdAt)||0));
+  if (sort === "profit") list.sort((a,b) => tradePnL(b)-tradePnL(a));
+  if (sort === "loss") list.sort((a,b) => tradePnL(a)-tradePnL(b));
+
+  $("historyList").innerHTML = list.length
+    ? list.map(tradeItemHTML).join("")
+    : '<div class="card empty">No matching trades found.</div>';
+}
+
+function saveCapital() {
+  const val = Number($("initialCapital").value);
+  if (!Number.isFinite(val) || val < 0) {
+    alert("Enter a valid capital amount.");
+    return;
+  }
+  initialCapital = val;
+  saveData();
+  refreshAll();
+  alert("Capital saved!");
+}
+
+function renderSettings() {
+  $("initialCapital").value = initialCapital;
+  $("settingsStart").textContent = money(initialCapital);
+  $("settingsCurrent").textContent = money(initialCapital + totalPnL());
+}
+
+let heatmapMode = "month";
+
+function changeHeatmapMode(mode) {
+  heatmapMode = mode === "week" ? "week" : "month";
+  $("monthModeBtn").classList.toggle("selected", heatmapMode === "month");
+  $("weekModeBtn").classList.toggle("selected", heatmapMode === "week");
+  renderHeatmap();
+}
+
+function moveHeatmap(step) {
+  if (heatmapMode === "month") {
+    calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + step, 1);
+  } else {
+    calendarDate = new Date(calendarDate);
+    calendarDate.setDate(calendarDate.getDate() + step * 7);
+  }
+  renderHeatmap();
+}
+
+function renderHeatmap() {
+  const calendar = $("calendar");
+  if (!calendar) return;
+  const title = $("monthTitle");
+  const detail = $("heatmapDayDetail");
+  detail.innerHTML = "";
+  let start, end, heading;
+  if (heatmapMode === "week") {
+    start = new Date(calendarDate);
+    start.setHours(12,0,0,0);
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+    end = new Date(start); end.setDate(end.getDate() + 7);
+    const last = new Date(end); last.setDate(last.getDate()-1);
+    heading = "Weekly · " + start.toLocaleDateString("en-IN",{day:"numeric",month:"short"}) + " – " + last.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
+  } else {
+    start = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), 1, 12);
+    end = new Date(calendarDate.getFullYear(), calendarDate.getMonth()+1, 1, 12);
+    heading = calendarDate.toLocaleDateString("en-IN",{month:"long",year:"numeric"}) + " · Monthly";
+  }
+  title.textContent = heading;
+  const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  let html = dayNames.map(d => `<div class="dayname">${d}</div>`).join("");
+  if (heatmapMode === "month") {
+    for (let i=0;i<start.getDay();i++) html += '<div></div>';
+  }
+  const daily = {};
+  trades.forEach(t => {
+    if (!validDate(t.date)) return;
+    const date = new Date(t.date + "T12:00:00");
+    if (date >= start && date < end) {
+      if (!daily[t.date]) daily[t.date] = {pnl:0,count:0,trades:[]};
+      daily[t.date].pnl += tradePnL(t); daily[t.date].count++; daily[t.date].trades.push(t);
+    }
+  });
+  for (let d = new Date(start); d < end; d.setDate(d.getDate()+1)) {
+    const key = localDateString(d), info = daily[key] || {pnl:0,count:0,trades:[]};
+    const cls = info.count ? (info.pnl > 0 ? "profit" : info.pnl < 0 ? "lossday" : "") : "";
+    const isToday = key === localDateString();
+    html += `<button type="button" class="day ${cls} ${isToday ? "today" : ""}" style="color:var(--text);width:100%;cursor:pointer" onclick="showHeatmapDay('${key}')" title="${info.count ? info.count + " trade(s) · " + money(info.pnl) : "0 trades"}">${d.getDate()}${info.count ? `<div class="trade-count">${info.count} trade${info.count === 1 ? "" : "s"}</div><div class="amt ${info.pnl >= 0 ? "green" : "red"}">${info.pnl>=0?"+":""}${Math.round(info.pnl)}</div>` : `<div class="trade-count">0 trades</div>`}</button>`;
+  }
+  calendar.innerHTML = html;
+  const periodTrades = trades.filter(t => validDate(t.date) && new Date(t.date+"T12:00:00") >= start && new Date(t.date+"T12:00:00") < end);
+  const pnl = periodTrades.reduce((sum,t)=>sum+tradePnL(t),0);
+  $("monthPnl").textContent = money(pnl);
+  $("monthPnl").className = "stat-value " + (pnl >= 0 ? "green" : "red");
+  $("monthTrades").textContent = periodTrades.length;
+}
+
+function showHeatmapDay(dateKey) {
+  const dayTrades = trades.filter(t => t.date === dateKey);
+  const pnl = dayTrades.reduce((sum,t)=>sum+tradePnL(t),0);
+  $("heatmapDayDetail").innerHTML = `<hr><h3>${safeText(dateKey)} · ${money(pnl)}</h3>` +
+    (dayTrades.length ? dayTrades.map(tradeItemHTML).join("") : '<div class="empty">No trades on this date.</div>');
+}
+
+function renderMonthlyReport() {
+  const picker = $("reportMonth");
+  if (!picker) return;
+  if (!picker.value) picker.value = localDateString().slice(0,7);
+  const list = trades.filter(t => validDate(t.date) && t.date.slice(0,7) === picker.value);
+  const pnls = list.map(tradePnL), net = pnls.reduce((a,b)=>a+b,0);
+  const wins = pnls.filter(n=>n>0).length;
+  const best = pnls.length ? Math.max(...pnls) : 0;
+  $("reportPnL").textContent = money(net);
+  $("reportPnL").className = "stat-value " + (net >= 0 ? "green" : "red");
+  $("reportTrades").textContent = list.length;
+  $("reportWinRate").textContent = list.length ? (wins/list.length*100).toFixed(1)+"%" : "0%";
+  $("reportBest").textContent = money(best);
+  $("reportSummary").textContent = list.length ? `${wins} winning trade(s), ${pnls.filter(n=>n<0).length} losing trade(s), ${pnls.filter(n=>n===0).length} breakeven. Net result: ${money(net)}.` : "No trades recorded for this month.";
+}
+
+function renderAnalytics() {
+  const s = stats();
+  $("winsCount").textContent = s.wins;
+  $("lossesCount").textContent = s.losses;
+  $("avgPnL").textContent = money(s.average);
+  $("avgPnL").className = "stat-value " + (s.average >= 0 ? "green" : "red");
+  $("profitFactor").textContent = s.factor === Infinity
+    ? "∞" : s.factor.toFixed(2);
+
+  $("symbolAnalytics").innerHTML = Object.keys(LOT_SIZES).map(symbol => {
+    const arr = trades.filter(t => t.symbol === symbol);
+    const pnl = arr.reduce((sum,t) => sum + tradePnL(t), 0);
+    const max = Math.max(1, ...Object.keys(LOT_SIZES).map(key =>
+      Math.abs(trades.filter(t => t.symbol === key).reduce((sum,t) => sum + tradePnL(t), 0))
+    ));
+    const width = Math.min(100, Math.abs(pnl) / max * 100);
+    return `<div style="margin:15px 0">
+      <div class="row"><strong>${safeText(symbol)}</strong><span>${arr.length} trades</span></div>
+      <div class="barline"><div class="barfill" style="width:${width}%;background:${pnl < 0 ? "var(--red)" : "var(--green)"}"></div></div>
+      <div class="row small" style="margin-top:6px"><span class="muted">Net P&L</span><strong class="${pnl >= 0 ? "green" : "red"}">${money(pnl)}</strong></div>
+    </div>`;
+  }).join("");
+
+  drawChart();
+}
+
+  
+function drawChart() {
+  const canvas = $("pnlChart");
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+  const today = localDateString();
+
+  const list = trades
+    .filter(t => t.date === today)
+    .sort((a, b) =>
+      (Number(a.createdAt) || 0) -
+      (Number(b.createdAt) || 0)
+    );
+
+  const detail = $("chartTradeDetail");
+  detail.style.display = "none";
+
+  ctx.clearRect(0, 0, w, h);
+
+  if (!list.length) {
+    ctx.fillStyle = "#91a0b3";
+    ctx.font = "15px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("No trades recorded today", w / 2, h / 2);
+    canvas.onclick = null;
+    return;
+  }
+
+  const values = list.map(tradePnL);
+  const max = Math.max(1, ...values.map(v => Math.abs(v)));
+  const zero = h / 2;
+  const padX = 22;
+  const gap = Math.min(12, Math.max(5, 100 / list.length));
+  const bw = Math.max(
+    5,
+    Math.min(36, (w - padX * 2 - gap * (list.length - 1)) / list.length)
+  );
+  const totalWidth = list.length * bw + (list.length - 1) * gap;
+  const startX = Math.max(padX, (w - totalWidth) / 2);
+
+  const bars = [];
+
+  ctx.strokeStyle = "#354454";
+  ctx.beginPath();
+  ctx.moveTo(12, zero);
+  ctx.lineTo(w - 12, zero);
+  ctx.stroke();
+
+  values.forEach((value, i) => {
+    const barHeight = Math.max(
+      value === 0 ? 2 : 4,
+      Math.abs(value) / max * (h / 2 - 35)
+    );
+
+    const x = startX + i * (bw + gap);
+    const y = value >= 0 ? zero - barHeight : zero;
+
+    ctx.fillStyle = value > 0 ? "#37e29a" :
+                    value < 0 ? "#ff5f70" : "#91a0b3";
+
+    ctx.beginPath();
+    ctx.roundRect(x, y, bw, barHeight, 5);
+    ctx.fill();
+
+    bars.push({
+      x, y, width: bw, height: barHeight,
+      trade: list[i], pnl: value
+    });
+  });
+
+  canvas.onclick = function(event) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (event.clientX - rect.left) * scaleX;
+    const y = (event.clientY - rect.top) * scaleY;
+
+    // Select a bar, including its nearby touch/click area.
+    const selected = bars.find(bar =>
+      x >= bar.x - 5 &&
+      x <= bar.x + bar.width + 5 &&
+      y >= Math.min(bar.y, zero) - 5 &&
+      y <= Math.max(bar.y + bar.height, zero) + 5
+    );
+
+    if (!selected) return;
+
+    const t = selected.trade;
+    const pnl = selected.pnl;
+    const isProfit = pnl > 0;
+    const isLoss = pnl < 0;
+
+    detail.style.display = "block";
+    detail.innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:10px">
+        <strong>${safeText(t.symbol)}</strong>
+        <span style="color:${isProfit ? "#37e29a" :
+          isLoss ? "#ff5f70" : "#91a0b3"};font-weight:800">
+          ${isProfit ? "PROFIT" : isLoss ? "LOSS" : "BREAKEVEN"}
+        </span>
+      </div>
+      <div style="font-size:26px;font-weight:800;margin:12px 0;
+        color:${isProfit ? "#37e29a" : isLoss ? "#ff5f70" : "#91a0b3"}">
+        ${money(pnl)}
+      </div>
+      <div class="trade-meta">
+        Date: ${safeText(t.date)}<br>
+        Direction: ${safeText(t.direction)}<br>
+        Lots: ${Number(t.lots) || 1}<br>
+        Quantity: ${Number(t.quantity) || 0}<br>
+        Entry: ${money(t.entry)}<br>
+        Exit: ${money(t.exit)}<br>
+        Charges: ${money(t.charges)}
+      </div>
+    `;
+
+    detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+}
+
+  
+function refreshAll() {
+  renderHome();
+  renderHistory();
+  renderHeatmap();
+  renderAnalytics();
+  renderMonthlyReport();
+  renderSettings();
+}
+
+function downloadFile(filename, content, type) {
+  const blob = new Blob([content], {type});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportJSON() {
+  downloadFile("tradevault-backup.json", JSON.stringify({
+    version: 1, initialCapital, trades
+  }, null, 2), "application/json");
+}
+
+function csvCell(value) {
+  let s = String(value ?? "");
+  if (/^[=+\-@]/.test(s)) s = "'" + s;
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
+function exportCSV() {
+  const headers = [
+    "Date","Symbol","Direction","Lots","Quantity",
+    "Entry","Exit","Charges","Net P&L","Setup","Notes"
+  ];
+  const rows = trades.map(t => [
+    t.date, t.symbol, t.direction, t.lots, t.quantity,
+    t.entry, t.exit, t.charges, tradePnL(t), t.setup, t.notes
+  ]);
+  const csv = [headers, ...rows].map(row => row.map(csvCell).join(",")).join("\r\n");
+  downloadFile("tradevault-trades.csv", "\uFEFF" + csv, "text/csv;charset=utf-8");
+}
+
+function exportExcel() {
+  // CSV is widely supported by Excel, Google Sheets, and Android spreadsheet apps.
+  // Avoid serving HTML content with an .xls extension, which some apps reject as corrupt.
+  const headers = [
+    "Date", "Symbol", "Direction", "Lots", "Quantity",
+    "Entry Price", "Exit Price", "Stop Loss", "Target Price",
+    "Charges", "Net P&L", "Strategy / Setup", "Notes"
+  ];
+  const rows = trades
+    .slice()
+    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
+    .map(t => [
+      t.date, t.symbol, t.direction, t.lots, t.quantity,
+      t.entry, t.exit, t.stopLoss || "", t.targetPrice || "",
+      t.charges, tradePnL(t), t.setup, t.notes
+    ]);
+  const csv = [headers, ...rows]
+    .map(row => row.map(csvCell).join(","))
+    .join("\r\n");
+  downloadFile("tradevault-trades.csv", "\uFEFF" + csv, "text/csv;charset=utf-8");
+  alert("Trades exported as CSV. Open tradevault-trades.csv in Excel or Google Sheets.");
+}
+
+function importJSON(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || !Array.isArray(data.trades)) {
+        throw new Error("Invalid backup format");
+      }
+
+      if (!confirm("Restore this backup? Your current trades will be replaced.")) {
+        event.target.value = "";
+        return;
+      }
+
+      const imported = data.trades.map(t => {
+        const symbol = LOT_SIZES[t.symbol] ? t.symbol : "NIFTY 50";
+        const lots = Math.max(1, Math.floor(Number(t.lots) ||
+          (Number(t.quantity) / LOT_SIZES[symbol]) || 1));
+        return {
+          id: String(t.id || (Date.now() + Math.random())),
+          symbol,
+          lots,
+          quantity: lots * LOT_SIZES[symbol],
+          date: validDate(t.date) ? t.date : localDateString(),
+          direction: t.direction === "Short" ? "Short" : "Long",
+          entry: Math.max(0, Number(t.entry) || 0),
+          exit: Math.max(0, Number(t.exit) || 0),
+          charges: Math.max(0, Number(t.charges) || 0),
+          stopLoss: Math.max(0, Number(t.stopLoss) || 0),
+          targetPrice: Math.max(0, Number(t.targetPrice) || 0),
+          setup: String(t.setup || "").slice(0,100),
+          notes: String(t.notes || "").slice(0,1000),
+          createdAt: Number(t.createdAt) || Date.now()
+        };
+      });
+
+      trades = imported;
+      initialCapital = Math.max(0, Number(data.initialCapital) || 0);
+      saveData();
+      refreshAll();
+      alert("Backup restored successfully!");
+    } catch (error) {
+      alert("Could not restore backup. Please select a valid TradeVault JSON file.");
+    }
+    event.target.value = "";
+  };
+  reader.readAsText(file);
+}
+
+function clearAllTrades() {
+  if (!confirm("Delete ALL trades? This cannot be undone.")) return;
+  if (!confirm("Are you absolutely sure? Export a backup first if needed.")) return;
+  trades = [];
+  saveData();
+  refreshAll();
+  alert("All trades deleted.");
+}
+
+["entry","exit","charges"].forEach(id => {
+  $(id).addEventListener("input", previewTradePnL);
+});
+["direction"].forEach(id => {
+  $(id).addEventListener("change", previewTradePnL);
+});
+["entry","stopLoss","targetPrice","quantity","direction"].forEach(id => {
+  $(id).addEventListener("input", updateRiskPreview);
+  $(id).addEventListener("change", updateRiskPreview);
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  loadData();
+  loadTheme();
+  if ($("reportMonth")) $("reportMonth").value = localDateString().slice(0,7);
+  if (localStorage.getItem("tradevault_pin_hash")) {
+    showLockScreen();
+  }
+  $("tradeDate").value = localDateString();
+  updateLotQuantity();
+  refreshAll();
+});
+  
+function updateRiskPreview() {
+  const entry = Number($("entry").value) || 0;
+  const stop = Number($("stopLoss").value) || 0;
+  const target = Number($("targetPrice").value) || 0;
+  const qty = Number($("quantity").value) || 0;
+  const direction = $("direction").value === "Short" ? -1 : 1;
+  const risk = stop > 0 && entry > 0 ? Math.abs(entry-stop)*qty : 0;
+  const reward = target > 0 && entry > 0 ? Math.abs(target-entry)*qty : 0;
+  const rr = risk > 0 && reward > 0 ? (reward/risk).toFixed(2)+":1" : "—";
+  $("riskPreview").textContent = risk > 0 || reward > 0 ? `Estimated risk: ${money(risk)} · Potential reward: ${money(reward)} · R:R ${rr}${direction === -1 ? " (Short)" : ""}` : "Add stop loss and target to estimate risk/reward.";
+}
+
+// PIN gate: new PINs use PBKDF2-SHA-256 when Web Crypto is available.
+// Legacy TradeVault PIN hashes are accepted once and upgraded after successful verification.
+function legacyPinHash(pin) {
+  let h = 2166136261;
+  for (let i=0;i<pin.length;i++) { h ^= pin.charCodeAt(i); h = Math.imul(h,16777619); }
+  return (h>>>0).toString(16);
+}
+function randomSalt() {
+  const bytes = new Uint8Array(16);
+  if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(bytes);
+  else for (let i=0;i<bytes.length;i++) bytes[i] = Math.floor(Math.random()*256);
+  return Array.from(bytes, b => b.toString(16).padStart(2,"0")).join("");
+}
+async function securePinHash(pin, salt) {
+  if (window.crypto && window.crypto.subtle && window.TextEncoder) {
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveBits"]);
+    const bits = await crypto.subtle.deriveBits({name:"PBKDF2", salt:enc.encode(salt), iterations:150000, hash:"SHA-256"}, key, 256);
+    return Array.from(new Uint8Array(bits), b => b.toString(16).padStart(2,"0")).join("");
+  }
+  // Compatibility fallback for browsers that do not expose Web Crypto on local files.
+  return legacyPinHash(salt + ":" + pin);
+}
+async function storePin(pin) {
+  const salt = randomSalt();
+  const hash = await securePinHash(pin, salt);
+  localStorage.setItem("tradevault_pin_salt", salt);
+  localStorage.setItem("tradevault_pin_hash", hash);
+  localStorage.setItem("tradevault_pin_version", "2");
+}
+function showLockScreen() {
+  const screen = $("pinLockScreen");
+  if (screen) {
+    screen.style.display = "flex";
+    document.body.style.overflow = "hidden";
+    setTimeout(() => $("unlockPin")?.focus(), 80);
+  }
+}
+function hideLockScreen() {
+  $("pinLockScreen").style.display = "none";
+  document.body.style.overflow = "";
+  $("pinError").textContent = "";
+  $("unlockPin").value = "";
+}
+async function setAppPin() {
+  const pin = $("pinInput").value.trim();
+  if (!/^\d{4,8}$/.test(pin)) { alert("PIN must be 4 to 8 digits."); return; }
+  try {
+    await storePin(pin);
+    $("pinInput").value = "";
+    alert("PIN lock enabled. Your existing trades have not been changed.");
+  } catch (err) {
+    alert("Could not save PIN in this browser. Try opening the HTML in a modern browser.");
+  }
+}
+async function verifyPin(pin) {
+  const saved = localStorage.getItem("tradevault_pin_hash");
+  if (!saved) return false;
+  const version = localStorage.getItem("tradevault_pin_version");
+  const salt = localStorage.getItem("tradevault_pin_salt");
+  if (version === "2" && salt) {
+    const candidate = await securePinHash(pin, salt);
+    return candidate === saved;
+  }
+  // Backward compatibility with earlier TradeVault files.
+  if (legacyPinHash(pin) === saved) {
+    await storePin(pin); // Upgrade old PIN record only; trade data key is untouched.
+    return true;
+  }
+  return false;
+}
+async function removeAppPin() {
+  if (!localStorage.getItem("tradevault_pin_hash")) { alert("No PIN is set."); return; }
+  const current = prompt("Enter current PIN to remove it:");
+  if (current === null) return;
+  try {
+    if (!(await verifyPin(current))) { alert("Incorrect PIN."); return; }
+    localStorage.removeItem("tradevault_pin_hash");
+    localStorage.removeItem("tradevault_pin_salt");
+    localStorage.removeItem("tradevault_pin_version");
+    alert("PIN lock removed.");
+  } catch (err) { alert("Could not verify PIN in this browser."); }
+}
+async function unlockApp() {
+  const pin = $("unlockPin").value;
+  const button = $("unlockButton");
+  button.disabled = true;
+  button.textContent = "Checking…";
+  try {
+    if (await verifyPin(pin)) {
+      hideLockScreen();
+    } else {
+      $("pinError").textContent = "Incorrect PIN. Please try again.";
+      $("unlockPin").value = "";
+      $("unlockPin").focus();
+    }
+  } catch (err) {
+    $("pinError").textContent = "PIN check failed. Please reload and try again.";
+  } finally {
+    button.disabled = false;
+    button.textContent = "Unlock TradeVault →";
+  }
+}
+function lockAppNow() {
+  if (!localStorage.getItem("tradevault_pin_hash")) {
+    alert("Set a PIN first to lock TradeVault.");
+    return;
+  }
+  showLockScreen();
+}
+// Re-lock on return from background. This is a screen lock, not storage encryption.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden" && localStorage.getItem("tradevault_pin_hash")) {
+    showLockScreen();
+  }
+});
+
+function changeTheme(theme) {
+  const allowedThemes = ["dark", "light", "midnight"];
+
+  if (!allowedThemes.includes(theme)) {
+    theme = "dark";
+  }
+
+  document.body.classList.remove("theme-light", "theme-midnight");
+
+  if (theme === "light") {
+    document.body.classList.add("theme-light");
+  } else if (theme === "midnight") {
+    document.body.classList.add("theme-midnight");
+  }
+
+  localStorage.setItem("tradevault_theme", theme);
+  $("themeSelect").value = theme;
+}
+
+function loadTheme() {
+  const savedTheme = localStorage.getItem("tradevault_theme") || "dark";
+  changeTheme(savedTheme);
+}
+
+</script>
+</body>
+</html>
